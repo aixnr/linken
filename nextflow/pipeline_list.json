@@ -1,0 +1,13 @@
+{
+  "pipelines": [
+    {
+      "id": "pipeline_001",
+      "path": "/nextflow/pipeline_001.nf",
+      "dateCreated": "2023-03-19",
+      "dateModified": "2023-03-19",
+      "description": "",
+      "tasks": ""
+    }
+  ]
+}
+

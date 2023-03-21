@@ -1,0 +1,124 @@
+# ------------------------------------------------------------------------------
+# Base stage docker image, 01
+FROM debian:11 as base_01
+
+ARG BWAMEM2_VER=v2.2.1
+ARG MINIMAP2_VER=v2.24
+ARG PICARD_VER=3.0.0/picard.jar
+ARG FASTQC_VER=fastqc_v0.12.1.zip
+ARG TRIMGALORE_VER=0.6.10.tar.gz
+ARG GATK_VER=4.3.0.0
+
+RUN apt-get update \
+    && apt-get install --assume-yes --quiet --no-install-recommends \
+    build-essential libbz2-dev libz-dev libncurses5-dev libcurl4-openssl-dev bzip2 liblzma-dev \
+    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-distutils openjdk-17-jre \
+    git curl unzip apt-transport-https ca-certificates \
+    && update-ca-certificates
+
+RUN echo "Compiling bwa from https://github.com/lh3/bwa" && cd / \
+    && git clone https://github.com/lh3/bwa && cd bwa && make && mv bwa /usr/local/bin
+
+RUN echo "Compiling bwa-mem2 from https://github.com/bwa-mem2/bwa-mem2/" && cd / \
+    && git clone --branch ${BWAMEM2_VER} https://github.com/bwa-mem2/bwa-mem2 \
+    && cd bwa-mem2 && git submodule init && git submodule update \
+    && make && mv bwa-mem2 bwa-mem2.avx2 bwa-mem2.avx512bw bwa-mem2.sse41 /usr/local/bin
+
+RUN echo "Compiling minimap2 from https://github.com/lh3/minimap2" && cd / \
+    && git clone --branch ${MINIMAP2_VER} https://github.com/lh3/minimap2 && cd minimap2 && make && mv minimap2 /usr/local/bin
+
+RUN echo "Downloading picard from https://github.com/broadinstitute/picard/releases/" && cd / \
+    && curl -L https://github.com/broadinstitute/picard/releases/download/${PICARD_VER} --output /usr/local/lib/picard.jar
+
+RUN echo "Downloading FastQC from https://www.bioinformatics.babraham.ac.uk/" && cd / \
+    && curl -L https://www.bioinformatics.babraham.ac.uk/projects/fastqc/${FASTQC_VER} --output fastqc.zip \
+    && unzip fastqc.zip && mv FastQC /usr/local/lib/fastqc/ \
+    && ln -s /usr/local/lib/fastqc/fastqc /usr/local/bin/fastqc
+
+RUN echo "Downloading trimgalore from https://github.com/FelixKrueger/TrimGalore" && cd / \
+    && curl -L https://github.com/FelixKrueger/TrimGalore/archive/${TRIMGALORE_VER} --output trimgalore.tar.gz \
+    && mkdir trimgalore && tar xf trimgalore.tar.gz --directory=trimgalore --strip-components=1 \
+    && mv trimgalore/trim_galore /usr/local/bin/trimgalore
+
+RUN echo "Downloading GATK4 from https://github.com/broadinstitute/gatk" && cd / \
+    && curl -L https://github.com/broadinstitute/gatk/releases/download/${GATK_VER}/gatk-${GATK_VER}.zip --output gatk.zip \
+    && unzip gatk.zip && mv gatk-${GATK_VER} /usr/local/lib/gatk \
+    && ln -s /usr/local/lib/gatk/gatk /usr/local/bin/gatk
+
+RUN echo "Installing nextflow" && cd / \
+    && curl -s https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow \
+    && chmod 755 /usr/local/bin/nextflow
+
+COPY scripts/lunar.py /usr/local/bin/lunar
+RUN echo "Adding lunar to $PATH as an executable" && cd / \
+    && chmod +x /usr/local/bin/lunar
+
+COPY scripts/linken.py /usr/local/bin/linken
+RUN echo "Adding linken container entry script to $PATH as an executable" && cd / \
+    && chmod +x /usr/local/bin/linken
+
+
+# ------------------------------------------------------------------------------
+# Base stage docker image, 02
+from debian:11 as base_02
+
+ARG HTSLIB_VER=1.17
+ARG SAMTOOLS_VER=1.17
+ARG LOFREQ_VER=v2.1.5
+ARG BCFTOOLS_VER=1.17
+
+RUN apt-get update \
+    && apt-get install --assume-yes --quiet --no-install-recommends \
+    build-essential libbz2-dev libz-dev libncurses5-dev libcurl4-openssl-dev bzip2 liblzma-dev \
+    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-distutils openjdk-17-jre \
+    git curl unzip apt-transport-https ca-certificates \
+    && update-ca-certificates
+
+RUN echo "Compiling HTSlib from https://github.com/samtools/htslib" && cd / \
+    && git clone --branch ${HTSLIB_VER} https://github.com/samtools/htslib && cd htslib \
+    && git submodule update --init --recursive && \
+    autoreconf -i && ./configure && make && make install
+
+RUN echo "Compiling samtools from https://github.com/samtools/samtools" && cd / \
+    && git clone --branch ${SAMTOOLS_VER} https://github.com/samtools/samtools && cd samtools \
+    && autoheader && autoconf -Wno-syntax && ./configure --prefix=/usr/local --with-htslib=/htslib && make && make install
+
+RUN echo "Compiling lofreq from https://github.com/CSB5/lofreq" && cd / \
+    && git clone --branch ${LOFREQ_VER} https://github.com/CSB5/lofreq && cd lofreq \
+    && ./bootstrap && ./configure --with-htslib=/htslib && make && make install
+
+RUN echo "Compiling bcftools from https://github.com/samtools/bcftools" && cd / \
+    && git clone --branch ${BCFTOOLS_VER} https://github.com/samtools/bcftools && cd bcftools \
+    && autoheader && autoconf && ./configure --with-htslib=/htslib && make && make install
+
+
+# ------------------------------------------------------------------------------
+# Final stage docker image
+
+FROM debian:11
+
+ARG CUTADAPT_VER=4.2
+
+RUN apt-get update \
+    && apt-get install --assume-yes --no-install-recommends \
+    libcurl4-openssl-dev libncurses5-dev openjdk-17-jre libfindbin-libs-perl libgsl-dev isal pigz curl \
+    python3-minimal python3-pip && python3 -m pip install cutadapt==${CUTADAPT_VER} \
+    && pip cache purge \
+    && apt-get remove --assume-yes python3-pip \
+    && apt-get autoremove --assume-yes \
+    && apt-get clean && apt-get purge --assume-yes && rm -rf /var/lib/apt/lists* \
+    && ln -s /usr/bin/python3 /usr/bin/python
+
+COPY --from=base_01 /usr/local/bin /usr/local/bin
+COPY --from=base_01 /usr/local/include/* /usr/local/include/
+COPY --from=base_01 /usr/local/lib/fastqc/ /usr/local/lib/fastqc
+COPY --from=base_01 /usr/local/lib/picard.jar /usr/local/lib/picard.jar
+COPY --from=base_01 /usr/local/lib/gatk /usr/local/lib/gatk
+
+COPY --from=base_02 /usr/local/bin /usr/local/bin
+COPY --from=base_02 /usr/local/include/* /usr/local/include/
+
+COPY nextflow /nextflow
+
+CMD /usr/local/bin/linken
+
