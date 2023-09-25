@@ -52,7 +52,7 @@ Using Linken through Singularity/Apptainer container is the primary use case.
 The process is split into two parts:
 
 1. Generating the index file for mapping with `bwa`, `samtools`, and `picard`.
-2. Running the nextflow script for performing:
+2. Running `hermes` (defaults to Illumina with paired-end reads) for performing:
     - Quality control and base-trimming with `fastqc` and `trimgalore`.
     - Mapping and generating aligned reads with `bwa` and `samtools`.
     - Recalibrating reads with `picard` and `gatk`.

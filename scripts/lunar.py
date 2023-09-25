@@ -13,8 +13,6 @@ import pwd
 import pathlib
 import sys
 import subprocess
-import pprint
-from typing import Optional
 
 
 ## -----------------------------------------------------------------------------
@@ -80,7 +78,7 @@ def lunar_doctor() -> None:
     """
     Lunar Doctor checks for environment
     """
-    _tools = ["curl", "python", "nextflow", "bwa", "samtools", "bwa-mem2", "minimap2", "fastqc",
+    _tools = ["curl", "python", "bwa", "samtools", "bwa-mem2", "minimap2", "fastqc",
               "cutadapt", "trimgalore", "lofreq", "bcftools", "gatk", "deeptools"]
 
     _tools_dict: dict[int, list] = {}
@@ -190,49 +188,15 @@ def pull_create_index(ref_id: str) -> None:
     generate_index()
     print(f"  Index files for ref genome {ref_id} were successfully generated!")
 
-
-def nextflow_list_scripts(stage: Optional[str] = None) -> None:
-    with open("/nextflow/pipeline_list.json") as json_file:
-        _data_nextflow: list[dict] = json.load(json_file)["pipelines"]
-
-    _data_full: dict[str, dict] = {}
-    for _, _item in enumerate(_data_nextflow):
-        _data_full[_item["id"]] = {
-            "Path": _item["path"],
-            "Date Created": _item["dateCreated"],
-            "Date Modified": _item["dateModified"],
-            "Description": _item["description"],
-            "Tasks": _item["tasks"]
-        }
-    
-    if not stage:
-        pprint.pprint(_data_full)
-
-    else:
-        if stage not in _data_full.keys():
-            print(f"  [ERR] Pipeline {stage} not found...")
-            print("  [ERR] Please run lunar flows to see available pipelines...")
-            print("  [ERR] Exiting...")
-            sys.exit()
-
-        _chosen_pipeline = _data_full[stage]
-        _pipeline_path = _chosen_pipeline['Path']
-
-        _cwd = os.getcwd()
-
-        _proc_copy_pipeline = subprocess.run(["cp", _pipeline_path, _cwd], capture_output=True, text=True)
-        if _proc_copy_pipeline.returncode == 0:
-            print(f"  [INFO] Copied pipeline {stage}!")
-        else:
-            print("  [INFO] Failed to copy pipeline...")
-            sys.exit()
+def clean_output():
+    pass
 
 
 ## -----------------------------------------------------------------------------
 # Argparse CLI frontend
 def cli():
     """
-    Lunar has five subcommands:
+    Lunar has the following subcommands:
       lunar list
         - List all available references from aixnr/linken-contrib
       lunar doctor
@@ -241,15 +205,9 @@ def cli():
         - TODO: update the implementation
         - Create reference from <ref>
         - Pulls data from aixnr/linken-contrib
-      lunar flows
-        - List all available nextflow scripts. Nextflow script definitions
-          are available at $PROJECTROOT/nextflow/pipeline_list.json
-        - The whole $PROJECTROOT/nextflow directory is copied to /nextflow in the final container
-      lunar stage --flow <nextflow script>
-        - Lunar copies nextflow script from /nextflow/*.nf to $PWD
       lunar clean
         :TODO pending implementation
-        - Clear current directory; removes work and .nextflow*
+        - Clear current directory; remove output_* directories
 
     By default, it creates a folder in $PWD called "index" where it downloads ref.fasta.
     Then, it calls bwa, samtools, and picard.jar to generate the index files in $PWD/index.
@@ -263,12 +221,6 @@ def cli():
     # Add parser for subcommands that do not accept additional arguments
     subparsers.add_parser("list", help="For listing all available reference genomes")
     subparsers.add_parser("doctor", help="For checking if associated tools exist in $PATH")
-    subparsers.add_parser("flows", help="List all available nextflow scripts")
-
-    # Generate the "stage" subcommand parser
-    subparser_stage = subparsers.add_parser("stage", help="Stage the specified nextflow script in current directory")
-    subparser_stage.add_argument("--flow", type=str, required=True,
-                                 default="pipeline_001", help="Choose a pipeline from the available list")
 
     # Generate the "create" subcommand parser
     subparser_create = subparsers.add_parser("create", help="For generating index files of the reference genome")
@@ -293,10 +245,11 @@ def cli():
         read_linken_contrib()
         pull_create_index(ref_id=args.ref)
         print("")
-    elif args.subcommand == "flows":
-        nextflow_list_scripts()
-    elif args.subcommand == "stage":
-        nextflow_list_scripts(stage=args.flow)
+    elif args.subcommand == "clean":
+        print("")
+        print("Deleting output_* directories...")
+        print("Pending implementation...")
+        # TODO: pending implementation
     else:
         print(banner_lunar)
         parser.print_help()

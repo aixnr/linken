@@ -15,8 +15,8 @@ linken_banner = r"""
 
     - lunar, a utility script for preparing sequencing workflows.
       $ linkenc lunar
-    - nextflow, for running .nf scripts (i.e., pipelines).
-      $ linkenc nextflow
+    - hermes, for running the mapping and variant calling
+      $ linkenc hermes -h
 
     For downstream analysis, use linken companion container, eeveec 
     (eevee container).

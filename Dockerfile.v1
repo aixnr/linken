@@ -8,12 +8,13 @@ ARG PICARD_VER=3.0.0/picard.jar
 ARG FASTQC_VER=fastqc_v0.12.1.zip
 ARG TRIMGALORE_VER=0.6.10.tar.gz
 ARG GATK_VER=4.3.0.0
+ARG CUTADAPT_VER=4.2
 
 RUN apt-get update \
     && apt-get install --assume-yes --quiet --no-install-recommends \
     build-essential libbz2-dev libz-dev libncurses5-dev libcurl4-openssl-dev bzip2 liblzma-dev \
-    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-distutils openjdk-17-jre \
-    git curl unzip apt-transport-https ca-certificates \
+    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-venv python3-distutils \
+    openjdk-17-jre git curl unzip apt-transport-https ca-certificates \
     && update-ca-certificates
 
 RUN echo "Compiling bwa from https://github.com/lh3/bwa" && cd / \
@@ -45,9 +46,25 @@ RUN echo "Downloading GATK4 from https://github.com/broadinstitute/gatk" && cd /
     && unzip gatk.zip && mv gatk-${GATK_VER} /usr/local/lib/gatk \
     && ln -s /usr/local/lib/gatk/gatk /usr/local/bin/gatk
 
-RUN echo "Installing nextflow" && cd / \
-    && curl -s https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow \
-    && chmod 755 /usr/local/bin/nextflow
+RUN echo "Zipping cutadapt with shiv" && cd / \
+    && mkdir cutadapt && cd cutadapt \
+    && python3 -m venv venv && . ./venv/bin/activate \
+    && pip install shiv \
+    && shiv -c cutadapt -o /usr/local/bin/cutadapt cutadapt==${CUTADAPT_VER}
+
+COPY ./src/hermes hermes/
+RUN echo "Building and installing linken-hermes" && cd / \
+    && curl -SLO "https://go.dev/dl/go1.21.1.linux-amd64.tar.gz" \
+    && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz \
+    && cd /hermes \
+    && CGO_ENABLED=0 /usr/local/go/bin/go build -ldflags="-s -w" \
+    && mv linken-hermes /usr/local/bin/hermes
+
+COPY ./src/eevee eevee/
+RUN echo "Zipping eevee with shiv" && cd /eevee \
+  && python3 -m venv venv && . ./venv/bin/activate \
+  && pip install shiv \
+  && shiv -c eevee -o /usr/local/bin/eevee --compressed .
 
 COPY scripts/lunar.py /usr/local/bin/lunar
 RUN echo "Adding lunar to $PATH as an executable" && cd / \
@@ -94,18 +111,12 @@ RUN echo "Compiling bcftools from https://github.com/samtools/bcftools" && cd / 
 
 # ------------------------------------------------------------------------------
 # Final stage docker image
-
 FROM debian:11
-
-ARG CUTADAPT_VER=4.2
 
 RUN apt-get update \
     && apt-get install --assume-yes --no-install-recommends \
     libcurl4-openssl-dev libncurses5-dev openjdk-17-jre libfindbin-libs-perl libgsl-dev isal pigz curl \
-    python3-minimal python3-pip && python3 -m pip install cutadapt==${CUTADAPT_VER} \
-    && pip cache purge \
-    && apt-get remove --assume-yes python3-pip \
-    && apt-get autoremove --assume-yes \
+    python3-minimal python3-pip \
     && apt-get clean && apt-get purge --assume-yes && rm -rf /var/lib/apt/lists* \
     && ln -s /usr/bin/python3 /usr/bin/python
 
@@ -117,8 +128,6 @@ COPY --from=base_01 /usr/local/lib/gatk /usr/local/lib/gatk
 
 COPY --from=base_02 /usr/local/bin /usr/local/bin
 COPY --from=base_02 /usr/local/include/* /usr/local/include/
-
-COPY nextflow /nextflow
 
 CMD /usr/local/bin/linken
 
