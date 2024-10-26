@@ -11,4 +11,3 @@ set -eu
 samtools mpileup output_map/{{ .Bwa }} \
   --fasta-ref {{ .BwaIndex }}.fasta | \
   awk '{print $1"\t"$2"\t"$3"\t"$4}' > output_coverage/{{ .Sample }}_coverage.tsv
-

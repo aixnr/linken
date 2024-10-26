@@ -1,0 +1,14 @@
+# ------------------------------------------------------------------------------
+# Common base image for compiling tools
+# Image name: linken_build_base:latest
+FROM debian:12
+
+RUN apt-get update \
+    && apt-get install --assume-yes --quiet --no-install-recommends \
+    build-essential libbz2-dev libz-dev libncurses5-dev libcurl4-openssl-dev bzip2 liblzma-dev \
+    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-venv python3-distutils \
+    openjdk-17-jre git curl unzip apt-transport-https ca-certificates \
+    && update-ca-certificates \
+    && apt-get clean && apt-get purge --assume-yes && rm -rf /var/lib/apt/lists* \
+    && curl -SLO "https://go.dev/dl/go1.21.1.linux-amd64.tar.gz" \
+    && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz

@@ -22,4 +22,3 @@ eevee coverage \
   --sample {{ .Sample }} \
   --cov_tsv output_coverage/{{ .Sample }}_coverage.tsv \
   --vcf output_variant/{{ .Sample }}_variant_table.tsv
-

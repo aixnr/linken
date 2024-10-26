@@ -17,9 +17,6 @@ linken_banner = r"""
       $ linkenc lunar
     - hermes, for running the mapping and variant calling
       $ linkenc hermes -h
-
-    For downstream analysis, use linken companion container, eeveec 
-    (eevee container).
 """
 
 

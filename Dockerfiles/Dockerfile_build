@@ -1,29 +1,23 @@
 # ------------------------------------------------------------------------------
-# Base stage docker image, 01
-FROM debian:11 as base_01
+# Build stage image 01
+FROM linken_base:latest AS base_01
 
-ARG BWAMEM2_VER=v2.2.1
+ARG BWAMEM2_VER=2.2.1
 ARG MINIMAP2_VER=v2.24
 ARG PICARD_VER=3.0.0/picard.jar
 ARG FASTQC_VER=fastqc_v0.12.1.zip
 ARG TRIMGALORE_VER=0.6.10.tar.gz
 ARG GATK_VER=4.3.0.0
 ARG CUTADAPT_VER=4.2
-
-RUN apt-get update \
-    && apt-get install --assume-yes --quiet --no-install-recommends \
-    build-essential libbz2-dev libz-dev libncurses5-dev libcurl4-openssl-dev bzip2 liblzma-dev \
-    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-venv python3-distutils \
-    openjdk-17-jre git curl unzip apt-transport-https ca-certificates \
-    && update-ca-certificates
+ARG CANU_VER=2.2
 
 RUN echo "Compiling bwa from https://github.com/lh3/bwa" && cd / \
     && git clone https://github.com/lh3/bwa && cd bwa && make && mv bwa /usr/local/bin
 
-RUN echo "Compiling bwa-mem2 from https://github.com/bwa-mem2/bwa-mem2/" && cd / \
-    && git clone --branch ${BWAMEM2_VER} https://github.com/bwa-mem2/bwa-mem2 \
-    && cd bwa-mem2 && git submodule init && git submodule update \
-    && make && mv bwa-mem2 bwa-mem2.avx2 bwa-mem2.avx512bw bwa-mem2.sse41 /usr/local/bin
+RUN echo "Downloading pre-compiled bwa-mem2 from https://github.com/bwa-mem2/bwa-mem2" && cd / \
+    && curl --output bwa-mem2.tar.bz2 -L https://github.com/bwa-mem2/bwa-mem2/releases/download/v"${BWAMEM2_VER}"/bwa-mem2-"${BWAMEM2_VER}"_x64-linux.tar.bz2 \
+    && tar axf bwa-mem2.tar.bz2 \
+    && mv bwa-mem2-"${BWAMEM2_VER}"_x64-linux/bwa-mem2* /usr/local/bin
 
 RUN echo "Compiling minimap2 from https://github.com/lh3/minimap2" && cd / \
     && git clone --branch ${MINIMAP2_VER} https://github.com/lh3/minimap2 && cd minimap2 && make && mv minimap2 /usr/local/bin
@@ -46,6 +40,10 @@ RUN echo "Downloading GATK4 from https://github.com/broadinstitute/gatk" && cd /
     && unzip gatk.zip && mv gatk-${GATK_VER} /usr/local/lib/gatk \
     && ln -s /usr/local/lib/gatk/gatk /usr/local/bin/gatk
 
+RUN echo "Downloading muscle from https://github.com/rcedgar/muscle/" && cd / \
+    && curl -L "https://github.com/rcedgar/muscle/releases/download/5.1.0/muscle5.1.linux_intel64" --output /usr/local/bin/muscle \
+    && chmod +x /usr/local/bin/muscle
+
 RUN echo "Zipping cutadapt with shiv" && cd / \
     && mkdir cutadapt && cd cutadapt \
     && python3 -m venv venv && . ./venv/bin/activate \
@@ -53,10 +51,7 @@ RUN echo "Zipping cutadapt with shiv" && cd / \
     && shiv -c cutadapt -o /usr/local/bin/cutadapt cutadapt==${CUTADAPT_VER}
 
 COPY ./src/hermes hermes/
-RUN echo "Building and installing linken-hermes" && cd / \
-    && curl -SLO "https://go.dev/dl/go1.21.1.linux-amd64.tar.gz" \
-    && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz \
-    && cd /hermes \
+RUN echo "Building and installing linken-hermes" && cd /hermes \
     && CGO_ENABLED=0 /usr/local/go/bin/go build -ldflags="-s -w" \
     && mv linken-hermes /usr/local/bin/hermes
 
@@ -66,35 +61,36 @@ RUN echo "Zipping eevee with shiv" && cd /eevee \
   && pip install shiv \
   && shiv -c eevee -o /usr/local/bin/eevee --compressed .
 
-COPY scripts/lunar.py /usr/local/bin/lunar
-RUN echo "Adding lunar to $PATH as an executable" && cd / \
-    && chmod +x /usr/local/bin/lunar
+COPY ./src/lunar lunar/
+RUN echo "Zipping lunar with shiv" && cd /lunar \
+  && python3 -m venv venv && . ./venv/bin/activate \
+  && pip install shiv \
+  && shiv -c lunar -o /usr/local/bin/lunar --compressed .
 
 COPY scripts/linken.py /usr/local/bin/linken
 RUN echo "Adding linken container entry script to $PATH as an executable" && cd / \
     && chmod +x /usr/local/bin/linken
 
+RUN echo "Installing canu from precompiled zipped binary" && cd / \
+    && curl --output canu.tar.gz -L https://github.com/marbl/canu/releases/download/v"${CANU_VER}"/canu-"${CANU_VER}".Linux-amd64.tar.xz \
+    && tar axf canu.tar.gz && rm -rf canu.tar.gz \
+    && mv canu-"${CANU_VER}" /opt/canu && ln -s /opt/canu/bin/canu /usr/local/bin
+
 
 # ------------------------------------------------------------------------------
-# Base stage docker image, 02
-from debian:11 as base_02
+# Build stage image 02
+FROM linken_base:latest AS base_02
 
 ARG HTSLIB_VER=1.17
 ARG SAMTOOLS_VER=1.17
 ARG LOFREQ_VER=v2.1.5
 ARG BCFTOOLS_VER=1.17
-
-RUN apt-get update \
-    && apt-get install --assume-yes --quiet --no-install-recommends \
-    build-essential libbz2-dev libz-dev libncurses5-dev libcurl4-openssl-dev bzip2 liblzma-dev \
-    libcrypto++-dev autoconf automake libgsl-dev python3-minimal python3-distutils openjdk-17-jre \
-    git curl unzip apt-transport-https ca-certificates \
-    && update-ca-certificates
+ARG IVAR_VER=1.4.3
 
 RUN echo "Compiling HTSlib from https://github.com/samtools/htslib" && cd / \
     && git clone --branch ${HTSLIB_VER} https://github.com/samtools/htslib && cd htslib \
-    && git submodule update --init --recursive && \
-    autoreconf -i && ./configure && make && make install
+    && git submodule update --init --recursive \
+    && autoreconf -i && ./configure && make && make install
 
 RUN echo "Compiling samtools from https://github.com/samtools/samtools" && cd / \
     && git clone --branch ${SAMTOOLS_VER} https://github.com/samtools/samtools && cd samtools \
@@ -108,26 +104,34 @@ RUN echo "Compiling bcftools from https://github.com/samtools/bcftools" && cd / 
     && git clone --branch ${BCFTOOLS_VER} https://github.com/samtools/bcftools && cd bcftools \
     && autoheader && autoconf && ./configure --with-htslib=/htslib && make && make install
 
+RUN echo "Compiling iVar from https://github.com/andersen-lab/ivar" && cd / \
+    && git clone --branch v${IVAR_VER} https://github.com/andersen-lab/ivar && cd ivar \
+    && ./autogen.sh && ./configure \
+    && make && make install \
+    && ldconfig
+
 
 # ------------------------------------------------------------------------------
 # Final stage docker image
-FROM debian:11
-
-RUN apt-get update \
-    && apt-get install --assume-yes --no-install-recommends \
-    libcurl4-openssl-dev libncurses5-dev openjdk-17-jre libfindbin-libs-perl libgsl-dev isal pigz curl \
-    python3-minimal python3-pip \
-    && apt-get clean && apt-get purge --assume-yes && rm -rf /var/lib/apt/lists* \
-    && ln -s /usr/bin/python3 /usr/bin/python
+FROM debian:12
 
 COPY --from=base_01 /usr/local/bin /usr/local/bin
 COPY --from=base_01 /usr/local/include/* /usr/local/include/
 COPY --from=base_01 /usr/local/lib/fastqc/ /usr/local/lib/fastqc
 COPY --from=base_01 /usr/local/lib/picard.jar /usr/local/lib/picard.jar
 COPY --from=base_01 /usr/local/lib/gatk /usr/local/lib/gatk
+COPY --from=base_01 /opt/canu /opt/canu
 
 COPY --from=base_02 /usr/local/bin /usr/local/bin
 COPY --from=base_02 /usr/local/include/* /usr/local/include/
+COPY --from=base_02 /usr/local/lib/* /usr/local/lib/
+
+RUN apt-get update \
+    && apt-get install --assume-yes --no-install-recommends \
+    libcurl4-openssl-dev libncurses5-dev openjdk-17-jre libfindbin-libs-perl libgsl-dev isal pigz curl \
+    python3-minimal python3-pip \
+    && apt-get clean && apt-get purge --assume-yes && rm -rf /var/lib/apt/lists* \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && ldconfig
 
 CMD /usr/local/bin/linken
-
