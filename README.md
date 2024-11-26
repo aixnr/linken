@@ -63,21 +63,21 @@ The process is split into three parts:
 # Change directory (cd) into the analysis folder
 cd analysis_folder
 
-# Show linkenc lunar main interface
-linkenc lunar
+# Show linken lunar main interface
+linken lunar
 
 # Run lunar doctor to check for environment
-linkenc lunar doctor
+linken lunar doctor
 
 # List publicly available indexes (github.com/aixnr/linken-contrib; main branch)
-linkenc lunar list
+linken lunar list
 
 # Generate index files for a reference genome
-linkenc lunar create --ref IAV-PR8-MtSinai
+linken lunar create --ref IAV-PR8-MtSinai
 
 # Process the raw_reads, assumes samples are defined in paired.csv by default
 # The default behavior can be overridden
-linkenc hermes
+linken hermes
 ```
 
 ### Hermes

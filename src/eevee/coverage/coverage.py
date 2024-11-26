@@ -73,7 +73,6 @@ class Coverage:
             plt.subplots_adjust(hspace=0.4)
 
             plot_coverage(ax=ax1, df=_df_chr)
-            plot_variant_bar(ax=ax1, df=_merged_chr)
             plot_allelic_frequency(ax=ax2, df=_merged_chr)
 
             ax1.set_xticklabels([])
@@ -114,15 +113,3 @@ def plot_allelic_frequency(ax: plt.Axes, df: pd.DataFrame, color="Tomato"):
     ax.set_yticks([0.001, 0.01, 0.1, 1], [0.001, 0.01, 0.1, 1], fontsize=7)
     ax.set_ylabel("frequency")
     ax.set_xlabel("nucleotide position")
-
-
-def plot_variant_bar(ax: plt.Axes, df: pd.DataFrame, color="Tomato"):
-    for _, row in df.iterrows():
-        ax.vlines(x=row["Position"], ymin=0, ymax=row["Coverage"] * 1.1, color=color)
-
-        nuc_ref, nuc_pos, nuc_alt = row['Reference'], row['Position'], row['Alternate']
-        nuc_y_height = row["Coverage"] * 1.15
-        nuc_marker = f"{nuc_ref}{nuc_pos}{nuc_alt}"
-
-        ax.text(s=nuc_marker, x=nuc_pos, y=nuc_y_height, ha="center",
-                color=color, fontsize=7, rotation=90)

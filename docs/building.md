@@ -30,9 +30,6 @@ docker build --tag linken:latest --file Dockerfiles/Dockerfile_build .
 
 # To clear builder's cache
 docker builder prune
-
-# To force a clean build by pulling latest version and no caching
-docker build --pull --no-cache --tag aixnr/linken:latest .
 ```
 
 On a 4c/8t machine (AMD Ryzen 5 1400), the whole container build step could take around 5 - 6 minutes to complete.
@@ -41,10 +38,10 @@ To test the container image:
 
 ```bash
 # Long format
-docker run --interactive --tty --name linken aixnr/linken /bin/bash
+docker run --interactive --tty --name linken linken:latest /bin/bash
 
 # Short format
-docker run -it --name linken aixnr/linken /bin/bash
+docker run -it --name linken linken:latest /bin/bash
 ```
 
 
@@ -57,22 +54,22 @@ Example below:
 ENTRYPOINT ["bwa", "index"]
 ```
 
-This allows for the user to run `aixnr/linken` container image as follows:
+This allows for the user to run `linken` container image as follows:
 
 ```bash
-docker run -v $(pwd):/data --rm aixnr/linken /data/H1N1-PR8-WG.fasta -p /data/test
+docker run -v $(pwd):/data --rm linken /data/H1N1-PR8-WG.fasta -p /data/test
 ```
 
 - `-v $(pwd):/data` mounts current working directory (`$(pwd)`) on host as `/data` on the container.
 - `--rm` deletes the container after exiting.
-- `aixnr/linken` is the name of the container image.
+- `linken` is the name of the container image.
 - `/data/H1N1-PR8-WG.fasta -p /data/test` is passed to the `ENTRYPOINT`, which then gets evaluated as `bwa index /data/H1N1-PR8-WG.fasta -p /data/test`.
 
 Also during testing, the container was started in current directory where raw reads were located at `$(pwd)/raw_reads` subdirectory.
 The current `$(pwd)` was mounted inside the container at `/EXPERIMENT` to test the pipeline.
 
 ```bash
-docker run -it --name linken --volume $(pwd):/EXPERIMENT --rm aixnr/linken /bin/bash
+docker run -it --name linken --volume $(pwd):/EXPERIMENT --rm linken /bin/bash
 ```
 
 The reference index `[reference.fasta]` that was used was IAV PR8, available on `aixnr/linken-contrib` GitHub repo.
@@ -93,11 +90,9 @@ bwa index ./index/ref.fasta -p ./index/ref
 samtools faidx ./index/ref.fasta
 java -jar /usr/local/lib/picard.jar CreateSequenceDictionary R=./index/ref.fasta O=./index/ref.dict
 
-
 # Trimming (output directory: ./trimmed)
 mkdir trimmed
 trimgalore --paired ./raw_reads/[S1_R1.fastq.gz] raw_reads/[S1_R2.fastq.gz] --output_dir=trimmed
-
 
 # Mapping reads (output directory: ./artifacts)
 mkdir artifacts
@@ -106,7 +101,6 @@ bwa mem -M ./index/ref ./trimmed/[S1_R1.fq.gz] ./trimmed/[S1_R2.fq.gz] | \
 	samtools sort -o ./artifacts/[S1.bwa.bam]
 
 samtools index ./artifacts/[S1.bwa.bam]
-
 
 # Generate coverage information (output directory: ./artifacts)
 samtools mpileup ./artifacts/[S1.bwa.bam] --fasta-ref ./index/ref.fasta | \
@@ -124,21 +118,21 @@ The `apptainer` and `singularity` packages are available through `dnf` on Fedora
 Install them first, and then convert `aixnr/linken` docker image to `SIF` Singularity image format.
 
 ```bash
-# List all container images
+# List all container images to confirm it is present
 docker images
 
 # Assuming the aixnr/linken:latest container image is available
-apptainer build linkenc docker-daemon:aixnr/linken:latest
+apptainer build linken docker-daemon:linken:latest
 
 # Run container through shell
-apptainer shell linkenc
+apptainer shell linken
 
 # Run program that's available within linken.sif
-apptainer exec linkenc samtools
+apptainer exec linken samtools
 ```
 
-`linkenc` stands for *linken container* and it is an executable and can be run as follows: `./linken.sif`.
-Place it under path (e.g. at `~/.local/bin/linkenc`) and now it can be called as easy as `linkenc` (*linken container*).
+`linken` is the preferred shortname for this Linken Container and it is an executable and can be run as follows: `./linken.sif`.
+Place it under path (e.g. at `~/.local/bin/linken`) and now it can be called as easy as `linken`.
 
 If `--sandbox` flag is supplied, `apptainer` will produce a directory `linken` with all subdirectories visible.
 This is useful for mutating the container, i.e., adding more packages.
@@ -158,5 +152,5 @@ Of note, depending on the situation, `build` can fail because of insufficient sp
 ```bash
 mkdir APPTAINER_TMPDIR
 export APPTAINER_TMPDIR=$(pwd)/APPTAINER_TMPDIR
-apptainer build linken.sif docker-daemon:aixnr/linken:latest
+apptainer build linken.sif docker-daemon:linken:latest
 ```

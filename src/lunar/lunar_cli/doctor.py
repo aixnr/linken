@@ -8,7 +8,8 @@ def lunar_doctor() -> None:
     Lunar Doctor checks for environment
     """
     _tools = ["curl", "python", "bwa", "samtools", "bwa-mem2", "minimap2", "fastqc",
-              "cutadapt", "trimgalore", "lofreq", "bcftools", "gatk", "muscle"]
+              "cutadapt", "trimgalore", "lofreq", "bcftools", "gatk", "muscle", "ivar",
+              "eevee", "canu"]
 
     _tools_dict: dict[int, list] = {}
     for _i, _t in enumerate(_tools):

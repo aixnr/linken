@@ -55,18 +55,6 @@ RUN echo "Building and installing linken-hermes" && cd /hermes \
     && CGO_ENABLED=0 /usr/local/go/bin/go build -ldflags="-s -w" \
     && mv linken-hermes /usr/local/bin/hermes
 
-COPY ./src/eevee eevee/
-RUN echo "Zipping eevee with shiv" && cd /eevee \
-  && python3 -m venv venv && . ./venv/bin/activate \
-  && pip install shiv \
-  && shiv -c eevee -o /usr/local/bin/eevee --compressed .
-
-COPY ./src/lunar lunar/
-RUN echo "Zipping lunar with shiv" && cd /lunar \
-  && python3 -m venv venv && . ./venv/bin/activate \
-  && pip install shiv \
-  && shiv -c lunar -o /usr/local/bin/lunar --compressed .
-
 COPY scripts/linken.py /usr/local/bin/linken
 RUN echo "Adding linken container entry script to $PATH as an executable" && cd / \
     && chmod +x /usr/local/bin/linken
@@ -115,6 +103,8 @@ RUN echo "Compiling iVar from https://github.com/andersen-lab/ivar" && cd / \
 # Final stage docker image
 FROM debian:12
 
+ARG UV_VER=0.5.4
+
 COPY --from=base_01 /usr/local/bin /usr/local/bin
 COPY --from=base_01 /usr/local/include/* /usr/local/include/
 COPY --from=base_01 /usr/local/lib/fastqc/ /usr/local/lib/fastqc
@@ -128,10 +118,29 @@ COPY --from=base_02 /usr/local/lib/* /usr/local/lib/
 
 RUN apt-get update \
     && apt-get install --assume-yes --no-install-recommends \
-    libcurl4-openssl-dev libncurses5-dev openjdk-17-jre libfindbin-libs-perl libgsl-dev isal pigz curl \
-    python3-minimal python3-pip \
+      apt-transport-https ca-certificates curl \
+      libcurl4-openssl-dev libncurses5-dev openjdk-17-jre libfindbin-libs-perl libgsl-dev isal pigz curl \
     && apt-get clean && apt-get purge --assume-yes && rm -rf /var/lib/apt/lists* \
-    && ln -s /usr/bin/python3 /usr/bin/python \
-    && ldconfig
+    && ldconfig \
+    && curl --output uv.tar.gz -L https://github.com/astral-sh/uv/releases/download/"${UV_VER}"/uv-x86_64-unknown-linux-gnu.tar.gz \
+    && mkdir uv && tar axf uv.tar.gz --directory uv/ --strip-component=1 && rm uv.tar.gz \
+    && mv uv/* /usr/local/bin/ && rm -rf uv/ \
+    && uv python install 3.12 \
+    && uv venv pyvenv \
+    && ln -s /pyvenv/bin/python /usr/local/bin/python
+
+COPY ./src/eevee eevee
+RUN echo "Installing eevee" && cd /eevee \
+    && . /pyvenv/bin/activate \
+    && uv pip install . \
+    && ln -s /pyvenv/bin/eevee /usr/local/bin/eevee \
+    && cd / && rm -rf eevee
+
+COPY ./src/lunar lunar/
+RUN echo "Installing lunar" && cd /lunar \
+    && . /pyvenv/bin/activate \
+    && uv pip install . \
+    && ln -s /pyvenv/bin/lunar /usr/local/bin/lunar \
+    && cd / && rm -rf lunar
 
 CMD /usr/local/bin/linken
