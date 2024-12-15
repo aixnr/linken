@@ -20,7 +20,7 @@ linken_banner = r"""
     - eevee, utility for analyzing mapped reads
       $ linken eevee
 
-  Last compiled: 2024.NOV.25
+  Last compiled: 2024.DEC.15
 """
 
 

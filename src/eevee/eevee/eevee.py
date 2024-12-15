@@ -7,6 +7,7 @@
 import argparse
 from coverage import Coverage
 from substitution import Substitution
+from .eevee_bulk import config_read, config_doctor, substitution_bulk
 
 
 ## -----------------------------------------------------------------------------
@@ -61,6 +62,13 @@ def main():
     subparser_substitute.add_argument("--csv_dir", type=str, required=True,
                                       help="Output directory of the final CSV.")
     
+    # Add parser for subcommand 'substitute-bulk'
+    subparser_sbulk = subparsers.add_parser("substitute-bulk", help="Running 'eevee substitute' in bulk.")
+    subparser_sbulk.add_argument("--check", type=str, required=False,
+                                 help="Check if the TOML file either valid or not.")
+    subparser_sbulk.add_argument("--run", type=str, required=False,
+                                 help="Run eevee substitute in bulk mode.")
+
     # Complete the activation of ArgumentParser()
     args = parser.parse_args()
 
@@ -84,6 +92,14 @@ def main():
         delta.map_variant(variant_table=args.vcf).collect_residue_context()
         delta.write_csv(f"{args.csv_dir}/{args.sample}_residue_table_{gene_name}.csv")
         delta.write_genbank(f"{args.csv_dir}/{args.sample}_variant_{gene_name}.gb")
+
+    elif args.subcommand == "substitute-bulk":
+        if args.check:
+            config_toml = config_read(args.check)
+            config_doctor(config_data=config_toml)
+        elif args.run:
+            config_toml = config_read(args.run)
+            substitution_bulk(config_data=config_toml)
 
     else:
         print(banner_eevee)

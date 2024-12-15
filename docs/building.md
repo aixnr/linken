@@ -10,7 +10,7 @@ The container has the following packages available:
 | 3  | `minimap2`   | `lh3/minimap2`            | 2.24     | Source codes are downloaded and compiled during the container build step.
 | 4  | `samtools`   | `samtools/samtools`       | 1.17     | Source codes are downloaded and compiled during the container build step.
 | 5  | `picard.jar` | `broadinstitute/picard`   | 3.0.0    | The jar-executable file `picard.jar` is placed at `/usr/local/lib/picard.jar`.
-| 6  | `cutadapt`   | `marcelm/cutadapt`        | 4.2      | Available through `pip`; the installation takes place in the final image instead of the base image.
+| 6  | `cutadapt`   | `marcelm/cutadapt`        | 4.9      | Installed via `uv pip install` in the final image.
 | 7  | `fastqc`     | `s-andrews/FastQC`        | 0.12.1   | This is a Java executable. It is downloaded from the official website and placed at `/usr/local/lib/fastqc`. The executable `/usr/local/lib/fastqc/fastqc` is symlinked to `/usr/local/bin/fastqc`.
 | 8  | `trimgalore` | `FelixKrueger/TrimGalore` | 0.6.10   | The executable script is placed at `/usr/local/bin/trimgalore`.
 | 9  | `HTSlib`     | `samtools/htslib`         | 1.17     | Source codes are downloaded and compiled during the container build step.
@@ -19,6 +19,7 @@ The container has the following packages available:
 | 12 | `gatk`       | `broadinstitute/gatk`     | 4.3.0.0  | The bundled java executables are downloaded and placed at `/usr/local/lib/gatk`.
 | 13 | `ivar`       | `andersen-lab/ivar`       | 1.4.3    | Source codes are downloaded and compiled during the container build step. Shared library included in the final image (`/usr/local/lib`).
 | 14 | `canu`       | `marbl/canu`              | 1.4.3    | The pre-compiled binary is downloaded.
+| 15 | `bio`        | `ialbert/bio`             | 1.7.1    | Installed via `uv pip install` in the final image.
 
 To build the container image:
 
@@ -152,5 +153,5 @@ Of note, depending on the situation, `build` can fail because of insufficient sp
 ```bash
 mkdir APPTAINER_TMPDIR
 export APPTAINER_TMPDIR=$(pwd)/APPTAINER_TMPDIR
-apptainer build linken.sif docker-daemon:linken:latest
+apptainer build linken docker-daemon:linken:latest
 ```

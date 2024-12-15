@@ -8,7 +8,6 @@ ARG PICARD_VER=3.0.0/picard.jar
 ARG FASTQC_VER=fastqc_v0.12.1.zip
 ARG TRIMGALORE_VER=0.6.10.tar.gz
 ARG GATK_VER=4.3.0.0
-ARG CUTADAPT_VER=4.2
 ARG CANU_VER=2.2
 
 RUN echo "Compiling bwa from https://github.com/lh3/bwa" && cd / \
@@ -43,12 +42,6 @@ RUN echo "Downloading GATK4 from https://github.com/broadinstitute/gatk" && cd /
 RUN echo "Downloading muscle from https://github.com/rcedgar/muscle/" && cd / \
     && curl -L "https://github.com/rcedgar/muscle/releases/download/5.1.0/muscle5.1.linux_intel64" --output /usr/local/bin/muscle \
     && chmod +x /usr/local/bin/muscle
-
-RUN echo "Zipping cutadapt with shiv" && cd / \
-    && mkdir cutadapt && cd cutadapt \
-    && python3 -m venv venv && . ./venv/bin/activate \
-    && pip install shiv \
-    && shiv -c cutadapt -o /usr/local/bin/cutadapt cutadapt==${CUTADAPT_VER}
 
 COPY ./src/hermes hermes/
 RUN echo "Building and installing linken-hermes" && cd /hermes \
@@ -104,6 +97,8 @@ RUN echo "Compiling iVar from https://github.com/andersen-lab/ivar" && cd / \
 FROM debian:12
 
 ARG UV_VER=0.5.4
+ARG BIO_VER=1.7.1
+ARG CUTADAPT_VER=4.9
 
 COPY --from=base_01 /usr/local/bin /usr/local/bin
 COPY --from=base_01 /usr/local/include/* /usr/local/include/
@@ -142,5 +137,11 @@ RUN echo "Installing lunar" && cd /lunar \
     && uv pip install . \
     && ln -s /pyvenv/bin/lunar /usr/local/bin/lunar \
     && cd / && rm -rf lunar
+
+RUN echo "Installing cutadapt and bio" \
+    && . /pyvenv/bin/activate \
+    && uv pip install cutadapt=="${CUTADAPT_VER}" bio=="${BIO_VER}" \
+    && ln -s /pyvenv/bin/cutadapt /usr/local/bin/cutadapt \
+    && ln -s /pyvenv/bin/bio /usr/local/bin/bio
 
 CMD /usr/local/bin/linken

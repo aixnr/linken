@@ -148,7 +148,7 @@ class Substitution:
 
     def write_genbank(self, path_gb: str):
         """Write into annotated genbank file.
-        Writing for the variant sequence, not for the reference sequence.
+        Writing for the variant sequence, instead of the the reference sequence.
 
         Return:
           None

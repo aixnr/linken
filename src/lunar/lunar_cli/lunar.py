@@ -1,5 +1,6 @@
 ## -----------------------------------------------------------------------------
 # Import modules
+import sys
 import argparse
 from .doctor import lunar_doctor
 from .index_manager import read_linken_contrib, pretty_print_list, pull_create_index
@@ -45,9 +46,6 @@ def cli():
         - TODO: update the implementation
         - Create reference from <ref>
         - Pulls data from aixnr/linken-contrib
-      lunar clean
-        :TODO pending implementation
-        - Clear current directory; remove output_* directories
 
     By default, it creates a folder in $PWD called "index" where it downloads ref.fasta.
     Then, it calls bwa, samtools, and picard.jar to generate the index files in $PWD/index.
@@ -64,8 +62,11 @@ def cli():
 
     # Generate the "create" subcommand parser
     subparser_create = subparsers.add_parser("create", help="For generating index files of the reference genome")
-    subparser_create.add_argument("--ref", type=str, required=True,
-                                  default="IAV-PR8-WG", help="Reference genome to use")
+    subparser_create.add_argument("--ref", type=str, required=False,
+                                  help="Reference genome to use")
+
+    subparser_create.add_argument("--local-ref", type=str, required=False,
+                                  help="User-supplied reference genome to use")
 
     # Complete the activation of ArgumentParser()
     args = parser.parse_args()
@@ -83,13 +84,15 @@ def cli():
     elif args.subcommand == "create":
         print("")
         read_linken_contrib(timestamp, source_data)
-        pull_create_index(source_data, ref_id=args.ref)
+        if args.ref:
+            pull_create_index(source_data, ref_id=args.ref)
+        elif args.local_ref:
+            pull_create_index(source_data, ref_path=args.local_ref)
+        else:
+            print("  No valid reference supplied...")
+            print("  Exiting...")
+            sys.exit()
         print("")
-    elif args.subcommand == "clean":
-        print("")
-        print("Deleting output_* directories...")
-        print("Pending implementation...")
-        # TODO: pending implementation
     else:
         print(banner_lunar)
         parser.print_help()

@@ -1,4 +1,5 @@
 from urllib.request import urlopen
+from pathlib import Path
 import json
 import sys
 import subprocess
@@ -37,77 +38,86 @@ def pretty_print_list(source_data: dict) -> None:
         print("  {:<15} {:<42} {:<10}".format(*_v))
 
 
-def pull_create_index(source_data: dict, ref_id: str) -> None:
-    """
-    Pull reference genome fasta and generate index files.
-    
-    TODO: Handle stdout/stderr if returncode =/= 0 for subprocess calls.
-    """
+def pull_create_index(source_data: dict, ref_id: str = None, ref_path: str = None) -> None:
     _data_ref: list[dict] = source_data["data"]
     _data_id_key: dict[str, str] = {}
 
     for _item in _data_ref:
         _data_id_key[_item["id"]] = _item["location"]
 
-    if ref_id not in _data_id_key.keys():
-        print(f"  {ref_id} does not exist in our collection.")
-        print("  Program exits...")
+    if ref_id:
+        if ref_id not in _data_id_key.keys():
+            print(f"  {ref_id} does not exist in our collection.")
+            print("  Program exits...")
+            sys.exit()
+
+        _download_url = _data_id_key[ref_id]
+        print(f"  {ref_id} selected...")
+        print(f"  Downloading ref genome from {_download_url}")
+        generate_index(location_index=_download_url, retrieve="net")
+    elif ref_path:
+        generate_index(location_index=ref_path, retrieve="local")
+    else:
+        print("  Reference genome not supplied...")
+        print("  Exiting...")
         sys.exit()
 
-    _download_url = _data_id_key[ref_id]
-    print(f"  {ref_id} selected...")
-    print(f"  Downloading ref genome from {_download_url}")
-
-    def generate_index():
-        _index_dir = pathlib.Path("index")
-        if _index_dir.exists():
-            print("  Warning! The index directory already exists! I can't overwrite it")
-            print("  Exiting...")
-            print("")
-            sys.exit()
-        else:
-            os.mkdir("index")
-
-        proc_download = subprocess.run(["curl", "-L", _download_url, "--output", "./index/ref.fasta"], capture_output=True, text=True)
-        if proc_download.returncode == 0:
-            print("  Download completed!")
-        else:
-            print("  Download failed...")
-            sys.exit()
-
-        check_bwa_to_exit = shutil.which("bwa")
-        if check_bwa_to_exit == None:
-            print("  Error! The 'bwa' tool does not exist...")
-            print("  Exiting...")
-            print("")
-            sys.exit()
-
-        proc_bwa = subprocess.run(["bwa", "index", "./index/ref.fasta", "-p", "./index/ref"], capture_output=True, text=True)
-        if proc_bwa.returncode == 0:
-            print("  'bwa index' completed!")
-        else:
-            print("  'bwa index' failed...")
-            sys.exit()
-
-        proc_samtools = subprocess.run(["samtools", "faidx", "./index/ref.fasta"], capture_output=True, text=True)
-        if proc_samtools.returncode == 0:
-            print("  'samtools faidx' completed!")
-        else:
-            print("  'samtools faidx' failed...")
-            sys.exit()
-
-        proc_picard = subprocess.run(["java", "-jar", "/usr/local/lib/picard.jar", "CreateSequenceDictionary",
-                                      "R=./index/ref.fasta", "O=./index/ref.dict"], capture_output=True, text=True)
-        if proc_picard.returncode == 0:
-            print("  'java -jar picard.jar CreateSequenceDictionary' completed!")
-        else:
-            print("  'java -jar picard.jar CreateSequenceDictionary' failed...")
-            sys.exit()
-
-    generate_index()
-    print(f"  Index files for ref genome {ref_id} were successfully generated!")
+    print(f"  Index files for the reference genome were successfully generated!")
 
 
-def clean_output():
-    # TODO: clean something
-    pass
+def generate_index(location_index: str, retrieve: str = "net"):
+    _index_dir = pathlib.Path("index")
+    if _index_dir.exists():
+        print("  Warning! The index directory already exists! I can't overwrite it")
+        print("  Exiting...")
+        print("")
+        sys.exit()
+    else:
+        os.mkdir("index")
+
+    if retrieve == "net":
+        reference_download(link=location_index)
+    elif retrieve == "local":
+        reference_move(file_path=location_index)
+
+    proc_bwa = subprocess.run(["bwa", "index", "./index/ref.fasta", "-p", "./index/ref"], capture_output=True, text=True)
+    if proc_bwa.returncode == 0:
+        print("  'bwa index' completed!")
+    else:
+        print("  'bwa index' failed...")
+        sys.exit()
+
+    proc_samtools = subprocess.run(["samtools", "faidx", "./index/ref.fasta"], capture_output=True, text=True)
+    if proc_samtools.returncode == 0:
+        print("  'samtools faidx' completed!")
+    else:
+        print("  'samtools faidx' failed...")
+        sys.exit()
+
+    proc_picard = subprocess.run(["java", "-jar", "/usr/local/lib/picard.jar", "CreateSequenceDictionary",
+                                    "R=./index/ref.fasta", "O=./index/ref.dict"], capture_output=True, text=True)
+    if proc_picard.returncode == 0:
+        print("  'java -jar picard.jar CreateSequenceDictionary' completed!")
+    else:
+        print("  'java -jar picard.jar CreateSequenceDictionary' failed...")
+        sys.exit()
+
+
+def reference_download(link: str):
+    proc_download = subprocess.run(["curl", "-L", link, "--output", "./index/ref.fasta"], capture_output=True, text=True)
+    if proc_download.returncode == 0:
+        print("  Download completed!")
+    else:
+        print("  Download failed...")
+        sys.exit()
+
+
+def reference_move(file_path: str):
+    if Path(file_path).exists():
+        print(f"  Using {file_path} as the reference genome...")
+        print("  Moving the reference genome to ./index/ref.fasta")
+        shutil.move(file_path, "./index/ref.fasta")
+    else:
+        print(f"  File {file_path} does not exist!")
+        print("  Exiting....")
+        sys.exit()
