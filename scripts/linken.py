@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # This is linken container entry script
 
+import os
+
+build_date = os.environ.get("BUILD_DATE", "unknown")
+git_hash = os.environ.get("GIT_HASH", "unknown")
+
 
 ## -----------------------------------------------------------------------------
-linken_banner = r"""
+linken_banner = rf"""
 
   Linken Container (https://github.com/aixnr/linken)
   ==================================================
@@ -19,8 +24,11 @@ linken_banner = r"""
       $ linken hermes -h
     - eevee, utility for analyzing mapped reads
       $ linken eevee
+    - ont-vcall, a utility script for ONT sequencing data
+      $ linken ont-vcall
 
-  Last compiled: 2024.DEC.15
+  Build date: {build_date}
+  Commit hash: {git_hash}
 """
 
 

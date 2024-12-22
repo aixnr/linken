@@ -43,7 +43,6 @@ def cli():
       lunar doctor
         - Doctor checks for environment and for tools
       lunar create --ref <ref> [--local-ref <local reference fasta>]
-        - TODO: update the implementation
         - Create reference from <ref>
         - Pulls data from aixnr/linken-contrib
 

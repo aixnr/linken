@@ -161,3 +161,23 @@ If no error was returned, perform the analysis:
 ```bash
 linken eevee substitute-bulk --run PR8.toml
 ```
+
+
+### ont-vcall
+
+As of `2024/DEC/22`, a utility script for performing variant calling on Oxford Nanopore Technology (ONT) sequencing reads was added.
+This utility script relies on `minimap2` for read mapping and `iVar` for variant calling.
+
+The hard requirement is the current directory must contain `raw_reads` sub-folder containing all the raw reads in `.fastq` format.
+
+```bash
+# setup the environment
+# to pull reference sequence and feature file from GenBank
+# and for folder creation ('output_results' and 'output_plots')
+linken ont-vcall setup
+
+# run, sample-by-sample, for 1 gene segment at a time
+# the sample name must not contain the .fastq extension
+# the sample must exist in the raw_reads sub-folder
+linken ont-vcall run --sample <sample-name>
+```

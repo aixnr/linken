@@ -52,6 +52,10 @@ COPY scripts/linken.py /usr/local/bin/linken
 RUN echo "Adding linken container entry script to $PATH as an executable" && cd / \
     && chmod +x /usr/local/bin/linken
 
+COPY scripts/ont-vcall.py /usr/local/bin/ont-vcall
+RUN echo "Adding linken container ont-vcall script to $PATH as an executable" && cd / \
+    && chmod +x /usr/local/bin/ont-vcall
+
 RUN echo "Installing canu from precompiled zipped binary" && cd / \
     && curl --output canu.tar.gz -L https://github.com/marbl/canu/releases/download/v"${CANU_VER}"/canu-"${CANU_VER}".Linux-amd64.tar.xz \
     && tar axf canu.tar.gz && rm -rf canu.tar.gz \
@@ -110,6 +114,11 @@ COPY --from=base_01 /opt/canu /opt/canu
 COPY --from=base_02 /usr/local/bin /usr/local/bin
 COPY --from=base_02 /usr/local/include/* /usr/local/include/
 COPY --from=base_02 /usr/local/lib/* /usr/local/lib/
+
+ARG GIT_HASH
+ARG BUILD_DATE
+ENV GIT_HASH=${GIT_HASH}
+ENV BUILD_DATE=${BUILD_DATE}
 
 RUN apt-get update \
     && apt-get install --assume-yes --no-install-recommends \
