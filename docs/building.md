@@ -25,14 +25,10 @@ To build the container image:
 
 ```bash
 # In project's root
-# Prepare the base container image first
-docker build --tag linken_base:latest --file Dockerfiles/Dockerfile_base .
-docker build --tag linken:latest --file Dockerfiles/Dockerfile_build .
-
-# To clear builder's cache
-docker builder prune
+just build
 ```
 
+This project uses `just` (`make`'s cousin) for building the container images.
 On a 4c/8t machine (AMD Ryzen 5 1400), the whole container build step could take around 5 - 6 minutes to complete.
 The final size of this container image is **1.67 GB**.
 To test the container image:

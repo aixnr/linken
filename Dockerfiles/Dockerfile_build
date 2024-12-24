@@ -49,12 +49,20 @@ RUN echo "Building and installing linken-hermes" && cd /hermes \
     && mv linken-hermes /usr/local/bin/hermes
 
 COPY scripts/linken.py /usr/local/bin/linken
-RUN echo "Adding linken container entry script to $PATH as an executable" && cd / \
+RUN echo "Adding linken container entry script 'linken.py' to $PATH as an executable" && cd / \
     && chmod +x /usr/local/bin/linken
 
 COPY scripts/ont-vcall.py /usr/local/bin/ont-vcall
-RUN echo "Adding linken container ont-vcall script to $PATH as an executable" && cd / \
+RUN echo "Adding ont-vcall script to $PATH as an executable" && cd / \
     && chmod +x /usr/local/bin/ont-vcall
+
+COPY scripts/amplicon-dist.py /usr/local/bin/amplicon-dist
+RUN echo "Adding amplicon-dist script to $PATH as an executable" && cd / \
+    && chmod +x /usr/local/bin/amplicon-dist
+
+COPY scripts/wrap60.py /usr/local/bin/wrap60
+RUN echo "Adding wrap60 script to $PATH as an executable" && cd / \
+    && chmod +x /usr/local/bin/wrap60
 
 RUN echo "Installing canu from precompiled zipped binary" && cd / \
     && curl --output canu.tar.gz -L https://github.com/marbl/canu/releases/download/v"${CANU_VER}"/canu-"${CANU_VER}".Linux-amd64.tar.xz \

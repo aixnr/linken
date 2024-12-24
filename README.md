@@ -11,7 +11,7 @@ Detailed documentations are available in the `docs` folder.
 Designing a computational pipeline is inherently challenging.
 A pipeline involves *moving* data from one bioinformatic program to another, and the sequence of action has to be right.
 Making matter worse, sometimes different bioinformatic programs have different dependency requirements (*dependency hell*), resulting in conflict and program can crash.
-*Containerization*, a strategy that is used here (see `Dockerfile.v1`) is one of several robust strategies that can be used to mitigate *dependency hell*.
+*Containerization*, a strategy that is used here is one of several robust strategies that can be used to mitigate *dependency hell*.
 However, Docker images are often unsupported on compute clusters.
 Luckily, the Singularity/Apptainer project allows for *containers* to be safely executed on computer clusters.
 
@@ -165,7 +165,7 @@ linken eevee substitute-bulk --run PR8.toml
 
 ### ont-vcall
 
-As of `2024/DEC/22`, a utility script for performing variant calling on Oxford Nanopore Technology (ONT) sequencing reads was added.
+As of `2024/DEC/22`, a utility script for performing variant calling on Oxford Nanopore Technology (ONT) sequencing reads was added; see `scripts/ont-vcall.py`.
 This utility script relies on `minimap2` for read mapping and `iVar` for variant calling.
 
 The hard requirement is the current directory must contain `raw_reads` sub-folder containing all the raw reads in `.fastq` format.

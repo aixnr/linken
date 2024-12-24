@@ -81,6 +81,9 @@ def call_variants(sample: str) -> None:
 #!/usr/bin/env bash
 set -xeu
 
+amplicon-dist --fq raw_reads/{sample}.fastq
+mv raw_reads/{sample}.fastq.jpg output_plots/{sample}_length_histogram.jpg
+
 minimap2 -ax map-ont reference.fasta "raw_reads/{sample}.fastq" | samtools view --bam | samtools sort -o "{sample}.bam"
 
 samtools index "{sample}.bam"
@@ -115,7 +118,7 @@ def plot_coverage(sample: str) -> None:
     ax.set_xlabel("Nucleotide position")
     ax.set_title(sample, loc="left", fontsize=10)
 
-    for y in range(0, int(max_y), 25):
+    for y in range(0, int(max_y), 50):
         ax.axhline(y=y, color="silver", linewidth=0.5, alpha=0.25, zorder=-100)
 
     fig.savefig(f"output_plots/{sample}_coverage.png", dpi=150, format="png", bbox_inches="tight")
